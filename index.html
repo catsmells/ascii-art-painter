@@ -1,103 +1,437 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>ascii-art-painter</title>
-    <style>
-        body {
-            display: flex;
-            margin: 20px;
-            font-family: Arial, sans-serif;
-        }
-        #container {
-            display: flex;
-            gap: 20px;
-        }
-        #canvas {
-            border: 1px solid black;
-            background: white;
-        }
-        #asciiOutput {
-            white-space: pre;
-            font-family: 'Courier New', monospace;
-            background: #f0f0f0;
-            padding: 10px;
-            width: 400px;
-            height: 400px;
-            overflow: auto;
-            border: 1px solid #ccc;
-            line-height: 10px;
-            font-size: 10px;
-        }
-        #controls {
-            margin-bottom: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>ASCII Painter - by Dr. Cat (drcat.fun)</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --b: 1px solid #000; }
+    body {
+      background: #fff;
+      color: #000;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      padding: 10px 16px;
+      border-bottom: var(--b);
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-family: 'Instrument Serif', serif;
+      font-style: italic;
+      font-size: 1.3rem;
+      font-weight: 400;
+    }
+    header nav { display: flex; margin-left: auto; }
+    button {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      background: #fff;
+      color: #000;
+      border: var(--b);
+      cursor: pointer;
+      padding: 5px 11px;
+      letter-spacing: 0.03em;
+      margin-left: -1px;
+      transition: background .1s, color .1s;
+    }
+    button:first-child { margin-left: 0; }
+    button:hover  { background: #f0f0f0; }
+    button.active { background: #000; color: #fff; }
+    main { display: flex; flex: 1; overflow: hidden; }
+    aside {
+      width: 176px;
+      flex-shrink: 0;
+      border-right: var(--b);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .group {
+      border-bottom: var(--b);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .group-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 1px;
+    }
+    .btn-row { display: flex; }
+    .btn-row button { flex: 1; }
+    .sl-row { display: flex; align-items: center; gap: 7px; }
+    .sl-row label { color: #999; width: 42px; }
+    .sl-row input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 1px;
+      background: #000;
+      outline: none;
+      cursor: pointer;
+    }
+    .sl-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 9px; height: 9px;
+      background: #000;
+      cursor: pointer;
+    }
+    .sl-row input[type=range]::-moz-range-thumb {
+      width: 9px; height: 9px;
+      background: #000;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+    }
+    .sl-val { min-width: 22px; text-align: right; }
+    .color-row { display: flex; align-items: center; gap: 8px; }
+    .swatch {
+      width: 22px; height: 22px;
+      border: var(--b);
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .swatch input[type=color] {
+      position: absolute; inset: -2px;
+      width: calc(100% + 4px); height: calc(100% + 4px);
+      opacity: 0; cursor: pointer; border: none; padding: 0;
+    }
+    .color-hex { color: #666; font-size: 10px; }
+    .presets { display: flex; gap: 4px; flex-wrap: wrap; }
+    .preset {
+      width: 16px; height: 16px;
+      border: var(--b);
+      cursor: pointer;
+    }
+    .preset:hover { outline: 1px solid #000; outline-offset: 1px; }
+    .charset button {
+      display: block;
+      width: 100%;
+      margin: 0 0 -1px 0;
+      text-align: left;
+      padding: 5px 8px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .spacer { flex: 1; }
+    .bottom { border-top: var(--b); }
+    .bottom button {
+      display: block;
+      width: 100%;
+      margin: 0;
+      border: none;
+      border-bottom: var(--b);
+      text-align: left;
+      padding: 9px 12px;
+    }
+    .bottom button:last-child {border-bottom: none;}
+    .canvas-pane {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f7f7f7;
+      overflow: hidden;
+    }
+    #canvas {
+      display: block;
+      background: #fff;
+      border: var(--b);
+      cursor: crosshair;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .output-pane {
+      width: 300px;
+      flex-shrink: 0;
+      border-left: var(--b);
+      display: flex;
+      flex-direction: column;
+    }
+    .output-head {
+      padding: 8px 12px;
+      border-bottom: var(--b);
+      color: #999;
+      flex-shrink: 0;
+    }
+    #asciiOutput {
+      flex: 1;
+      font-family: 'DM Mono', monospace;
+      font-size: 5.5px;
+      line-height: 1;
+      white-space: pre;
+      background: #fff;
+      color: #000;
+      border: none;
+      resize: none;
+      outline: none;
+      overflow: auto;
+      padding: 10px;
+    }
+    .output-foot { border-top: var(--b); display: flex; flex-shrink: 0; }
+    .output-foot button { flex: 1; margin: 0; border: none; border-right: var(--b); padding: 8px; }
+    .output-foot button:last-child { border-right: none; }
+    .toast {
+      position: fixed;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%) translateY(50px);
+      background: #000; color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 7px 16px;
+      pointer-events: none;
+      transition: transform .2s cubic-bezier(.34,1.4,.64,1);
+      z-index: 999;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
 </head>
 <body>
-    <div id="container">
-        <div>
-            <div id="controls">
-                <button onclick="clearCanvas()">Clear Canvas</button>
-            </div>
-            <canvas id="canvas" width="1000" height="1000"></canvas>
-        </div>
-        <textarea id="asciiOutput" readonly></textarea>
+<header>
+  <h1>ASCII Painter - by Dr. Cat (drcat.fun)</h1>
+  <nav>
+    <button onclick="exportASCIIFile()">Export .txt</button>
+    <button onclick="clearCanvas()">Clear</button>
+  </nav>
+</header>
+<main>
+  <aside>
+    <div class="group">
+      <div class="group-label">Tool</div>
+      <div class="btn-row">
+        <button class="active" id="btn-draw"  onclick="setTool('draw')">Draw</button>
+        <button id="btn-erase" onclick="setTool('erase')">Erase</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn-fill" onclick="setTool('fill')">Fill</button>
+        <button id="btn-line" onclick="setTool('line')">Line</button>
+      </div>
     </div>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const asciiOutput = document.getElementById('asciiOutput');
-        let isDrawing = false;
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-        function startDrawing(e) {
-            isDrawing = true;
-            ctx.beginPath();
-            ctx.moveTo(e.offsetX, e.offsetY);
-            draw(e);
-        }
-        function draw(e) {
-            if (!isDrawing) return;
-            ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.stroke();
-            updateASCII();
-        }
-        function stopDrawing() {
-            isDrawing = false;
-            ctx.closePath();
-            updateASCII();
-        }
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateASCII();
-        }
-        function updateASCII() {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            const width = imageData.width;
-            const height = imageData.height;
-            const scaleX = Math.floor(width / 60);
-            const scaleY = Math.floor(height / 60);
-            let ascii = '';
-            const chars = ' .:-=+*#%@';
-            for (let y = 0; y < height; y += scaleY) {
-                for (let x = 0; x < width; x += scaleX) {
-                    const i = (y * width + x) * 4;
-                    const alpha = data[i + 3];
-                    const charIndex = Math.floor((alpha / 255) * (chars.length - 1));
-                    ascii += chars[charIndex];
-                }
-                ascii += '\n';
-            }
-            asciiOutput.value = ascii;
-        }
-        updateASCII();
-    </script>
+    <div class="group">
+      <div class="group-label">Brush</div>
+      <div class="sl-row">
+        <label>Size</label>
+        <input type="range" id="brushSize" min="1" max="60" value="8"
+               oninput="sv('sizeVal',this.value); updateBrush()">
+        <span class="sl-val" id="sizeVal">8</span>
+      </div>
+      <div class="sl-row">
+        <label>Opacity</label>
+        <input type="range" id="brushOpacity" min="5" max="100" value="100"
+               oninput="sv('opacVal',this.value); updateBrush()">
+        <span class="sl-val" id="opacVal">100</span>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">Color</div>
+      <div class="color-row">
+        <div class="swatch" id="colorSwatch" style="background:#000">
+          <input type="color" id="colorPicker" value="#000000" oninput="updateColor(this.value)">
+        </div>
+        <span class="color-hex" id="colorHex">#000000</span>
+      </div>
+      <div class="presets">
+        <div class="preset" style="background:#000" onclick="pickPreset('#000000')"></div>
+        <div class="preset" style="background:#555" onclick="pickPreset('#555555')"></div>
+        <div class="preset" style="background:#c0392b" onclick="pickPreset('#c0392b')"></div>
+        <div class="preset" style="background:#27ae60" onclick="pickPreset('#27ae60')"></div>
+        <div class="preset" style="background:#2980b9" onclick="pickPreset('#2980b9')"></div>
+        <div class="preset" style="background:#8e44ad" onclick="pickPreset('#8e44ad')"></div>
+        <div class="preset" style="background:#e67e22" onclick="pickPreset('#e67e22')"></div>
+        <div class="preset" style="background:#f1c40f" onclick="pickPreset('#f1c40f')"></div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">Charset</div>
+      <div class="charset">
+        <button class="active" onclick="setCharset(0)">░▒▓ Blocks</button>
+        <button onclick="setCharset(1)">.:–=+#@ Dense</button>
+        <button onclick="setCharset(2)">· ○ ◉ ● Circles</button>
+        <button onclick="setCharset(3)">⠁⠃⠇⠿ Braille</button>
+        <button onclick="setCharset(4)">0 1 Binary</button>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">Columns</div>
+      <div class="sl-row">
+        <input type="range" id="colsSlider" min="20" max="120" value="80"
+               oninput="sv('colsVal',this.value); updateASCII()" style="flex:1">
+        <span class="sl-val" id="colsVal">80</span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="bottom">
+      <button onclick="invertOutput()">⇅ Invert output</button>
+    </div>
+  </aside>
+  <div class="canvas-pane">
+    <canvas id="canvas" width="800" height="800"></canvas>
+  </div>
+  <div class="output-pane">
+    <div class="output-head">Output</div>
+    <textarea id="asciiOutput" readonly spellcheck="false"></textarea>
+    <div class="output-foot">
+      <button onclick="copyASCII()">Copy</button>
+      <button onclick="exportASCIIFile()">Download</button>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx    = canvas.getContext('2d');
+  const output = document.getElementById('asciiOutput');
+  let tool       = 'draw';
+  let isDrawing  = false;
+  let brushColor = '#000000';
+  let brushSize  = 8;
+  let brushAlpha = 1;
+  let inverted   = false;
+  let lineStart  = null;
+  let lineSnap   = null;
+  const CHARSETS = [
+    ' ░▒▓█',
+    ' .:-=+*#%@',
+    '  ·:○◎◉●',
+    ' ⠁⠃⠇⠏⠟⠿⣿',
+    ' 0 1',
+  ];
+  let charsetIdx = 0;
+  function fitCanvas() {
+    const p  = canvas.parentElement;
+    const s  = Math.min((p.clientWidth-32)/canvas.width, (p.clientHeight-32)/canvas.height, 1);
+    canvas.style.width  = (canvas.width  * s) + 'px';
+    canvas.style.height = (canvas.height * s) + 'px';
+  }
+  window.addEventListener('resize', fitCanvas);
+  fitCanvas();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  function updateBrush() {
+    brushSize  = +document.getElementById('brushSize').value;
+    brushAlpha = +document.getElementById('brushOpacity').value / 100;
+  }
+  function sv(id, v) { document.getElementById(id).textContent = v; }
+  function updateColor(hex) {
+    brushColor = hex;
+    document.getElementById('colorSwatch').style.background = hex;
+    document.getElementById('colorHex').textContent = hex.toUpperCase();
+  }
+  function pickPreset(hex) { updateColor(hex); document.getElementById('colorPicker').value = hex; }
+  function setTool(t) {
+    tool = t;
+    ['draw','erase','fill','line'].forEach(x =>
+      document.getElementById('btn-'+x).classList.toggle('active', x===t));
+    canvas.style.cursor = t === 'fill' ? 'cell' : 'crosshair';
+  }
+  function setCharset(i) {
+    charsetIdx = i;
+    document.querySelectorAll('.charset button')
+            .forEach((b,j) => b.classList.toggle('active', j===i));
+    updateASCII();
+  }
+  function pos(e) {
+    const r  = canvas.getBoundingClientRect();
+    const s  = e.touches ? e.touches[0] : e;
+    return { x: (s.clientX-r.left)*(canvas.width/r.width),
+             y: (s.clientY-r.top)*(canvas.height/r.height) };
+  }
+  canvas.addEventListener('mousedown',  onDown);
+  canvas.addEventListener('mousemove',  onMove);
+  canvas.addEventListener('mouseup',    onUp);
+  canvas.addEventListener('mouseleave', () => { if (tool!=='line') { isDrawing=false; ctx.closePath(); } });
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e); }, {passive:false});
+  canvas.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e); }, {passive:false});
+  canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(e);   }, {passive:false});
+  function applyStrokeStyle() {
+    ctx.globalAlpha = brushAlpha;
+    ctx.strokeStyle = tool==='erase' ? '#ffffff' : brushColor;
+    ctx.lineWidth   = brushSize;
+  }
+  function onDown(e) {
+    const p = pos(e);
+    if (tool==='fill') { floodFill(Math.round(p.x), Math.round(p.y)); updateASCII(); return; }
+    if (tool==='line') { lineStart=p; lineSnap=ctx.getImageData(0,0,canvas.width,canvas.height); isDrawing=true; return; }
+    isDrawing=true; applyStrokeStyle();
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+.1,p.y+.1); ctx.stroke();
+    updateASCII();
+  }
+  function onMove(e) {
+    if (!isDrawing) return;
+    const p = pos(e);
+    if (tool==='line') {
+      ctx.putImageData(lineSnap,0,0); applyStrokeStyle();
+      ctx.beginPath(); ctx.moveTo(lineStart.x,lineStart.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+    } else {
+      applyStrokeStyle(); ctx.lineTo(p.x,p.y); ctx.stroke();
+    }
+    updateASCII();
+  }
+  function onUp() { isDrawing=false; lineStart=lineSnap=null; ctx.closePath(); updateASCII(); }
+  function floodFill(sx, sy) {
+    const img=ctx.getImageData(0,0,canvas.width,canvas.height), d=img.data, W=canvas.width;
+    const idx=(x,y)=>(y*W+x)*4;
+    const gc=i=>[d[i],d[i+1],d[i+2],d[i+3]];
+    const tgt=gc(idx(sx,sy));
+    const fill=[parseInt(brushColor.slice(1,3),16),parseInt(brushColor.slice(3,5),16),parseInt(brushColor.slice(5,7),16),255];
+    const eq=(a,b)=>Math.abs(a[0]-b[0])<28&&Math.abs(a[1]-b[1])<28&&Math.abs(a[2]-b[2])<28&&Math.abs(a[3]-b[3])<28;
+    if (eq(tgt,fill)) return;
+    const stk=[[sx,sy]];
+    while(stk.length){ const[x,y]=stk.pop(); if(x<0||x>=W||y<0||y>=canvas.height) continue;
+      const i=idx(x,y); if(!eq(gc(i),tgt)) continue;
+      d[i]=fill[0];d[i+1]=fill[1];d[i+2]=fill[2];d[i+3]=fill[3];
+      stk.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]); }
+    ctx.putImageData(img,0,0);
+  }
+  function updateASCII() {
+    const cols=+document.getElementById('colsSlider').value;
+    const img=ctx.getImageData(0,0,canvas.width,canvas.height), d=img.data;
+    const W=canvas.width, H=canvas.height;
+    const stepX=W/cols, rows=Math.round(H/(stepX*2));
+    const chars=CHARSETS[charsetIdx];
+    let out='';
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const px=Math.floor(c*stepX+stepX/2), py=Math.floor(r*(H/rows)+(H/rows)/2);
+        const i=(py*W+px)*4;
+        const alpha=d[i+3], bright=(d[i]*.299+d[i+1]*.587+d[i+2]*.114)/255;
+        let density=(alpha/255)*(1-bright);
+        let ci=Math.round(density*(chars.length-1));
+        if(inverted) ci=(chars.length-1)-ci;
+        out+=chars[Math.max(0,Math.min(chars.length-1,ci))];
+      }
+      out+='\n';
+    }
+    output.value=out;
+  }
+  function clearCanvas()     { ctx.clearRect(0,0,canvas.width,canvas.height); updateASCII(); }
+  function invertOutput()    { inverted=!inverted; updateASCII(); toast(inverted?'Inverted':'Normal'); }
+  function copyASCII()       { navigator.clipboard.writeText(output.value).then(()=>toast('Copied')); }
+  function exportASCIIFile() {
+    const a=Object.assign(document.createElement('a'),{
+      href:URL.createObjectURL(new Blob([output.value],{type:'text/plain'})),download:'ascii-art.txt'});
+    a.click(); toast('Downloaded');
+  }
+  let _tt;
+  function toast(msg) {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.classList.add('show');
+    clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),1800);
+  }
+  updateASCII();
+</script>
 </body>
 </html>
